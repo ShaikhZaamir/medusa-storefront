@@ -1,18 +1,16 @@
 import { Text } from "@medusajs/ui"
 
-import Medusa from "../../../common/icons/medusa"
-import NextJs from "../../../common/icons/nextjs"
-
 const MedusaCTA = () => {
   return (
-    <Text className="flex gap-x-2 txt-compact-small-plus items-center">
-      Powered by
-      <a href="https://www.medusajs.com" target="_blank" rel="noreferrer">
-        <Medusa fill="#9ca3af" className="fill-[#9ca3af]" />
-      </a>
-      &
-      <a href="https://nextjs.org" target="_blank" rel="noreferrer">
-        <NextJs fill="#9ca3af" />
+    <Text className="flex items-center txt-compact-small-plus gap-x-1 text-gray-500">
+      Built by{" "}
+      <a
+        href="https://github.com/ShaikhZaamir"
+        target="_blank"
+        rel="noreferrer"
+        className="hover:text-gray-800 transition"
+      >
+        <span className="font-medium">Zaamir Shaikh</span>
       </a>
     </Text>
   )

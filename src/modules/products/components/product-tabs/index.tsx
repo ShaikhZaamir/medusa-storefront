@@ -6,6 +6,7 @@ import Refresh from "@modules/common/icons/refresh"
 
 import Accordion from "./accordion"
 import { HttpTypes } from "@medusajs/types"
+import ProductInfo from "@modules/products/templates/product-info"
 
 type ProductTabsProps = {
   product: HttpTypes.StoreProduct
@@ -13,10 +14,12 @@ type ProductTabsProps = {
 
 const ProductTabs = ({ product }: ProductTabsProps) => {
   const tabs = [
-    {
-      label: "Product Information",
-      component: <ProductInfoTab product={product} />,
-    },
+
+    // ProductInfoTab Commented for Runwayy 
+    // {
+    //   label: "Product Information",
+    //   component: <ProductInfoTab product={product} />,
+    // },
     {
       label: "Shipping & Returns",
       component: <ShippingInfoTab />,
@@ -87,8 +90,7 @@ const ShippingInfoTab = () => {
           <div>
             <span className="font-semibold">Fast delivery</span>
             <p className="max-w-sm">
-              Your package will arrive in 3-5 business days at your pick up
-              location or in the comfort of your home.
+              Your order will arrive within 3-5 business days, carefully packaged and delivered straight to your doorstep.
             </p>
           </div>
         </div>
@@ -108,11 +110,19 @@ const ShippingInfoTab = () => {
             <span className="font-semibold">Easy returns</span>
             <p className="max-w-sm">
               Just return your product and we&apos;ll refund your money. No
-              questions asked – we&apos;ll do our best to make sure your return
+              questions asked - we&apos;ll do our best to make sure your return
               is hassle-free.
             </p>
           </div>
         </div>
+      </div>
+      <div className="mt-6">
+        <a
+          href="/return-policy"
+          className="text-xs font-medium text-black underline-offset-4 hover:underline"
+        >
+          View full Return & Exchange Policy →
+        </a>
       </div>
     </div>
   )

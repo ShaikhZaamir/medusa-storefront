@@ -1,3 +1,9 @@
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
+
+import "yet-another-react-lightbox/styles.css";
+
 import { getBaseURL } from "@lib/util/env"
 import { Metadata } from "next"
 import "styles/globals.css"

@@ -1,7 +1,7 @@
 import { HttpTypes } from "@medusajs/types"
-import ProductRail from "@modules/home/components/featured-products/product-rail"
+import ProductRail from "@modules/home/components/last-few-left/product-rail"
 
-export default async function FeaturedProducts({
+export default async function LastFewLeft({
   collections,
   region,
 }: {
@@ -9,7 +9,7 @@ export default async function FeaturedProducts({
   region: HttpTypes.StoreRegion
 }) {
   const selected = collections.filter(
-    (c) => c.handle === "featured-products"
+    (c) => c.handle === "last-few-left"
   )
 
   return selected.map((collection) => (

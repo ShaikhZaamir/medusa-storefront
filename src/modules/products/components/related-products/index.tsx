@@ -47,23 +47,45 @@ export default async function RelatedProducts({
   }
 
   return (
-    <div className="product-page-constraint">
-      <div className="flex flex-col items-center text-center mb-16">
-        <span className="text-base-regular text-gray-600 mb-6">
-          Related products
-        </span>
-        <p className="text-2xl-regular text-ui-fg-base max-w-lg">
-          You might also want to check out these products.
-        </p>
+    <section className="mx-auto px-2 md:px-4 lg:px-6 py-10">
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-[22px] md:text-[26px] font-semibold text-[#1A1A1A] tracking-tight">
+          You may also like
+        </h2>
+
+        {product.collection && (
+          <div className="group flex items-center gap-1 text-[14px] font-medium text-[#1A1A1A]">
+            <a href={`/collections/${product.collection.handle}`}>
+              <span className="transition group-hover:opacity-60">
+                View all
+              </span>
+            </a>
+          </div>
+        )}
       </div>
 
-      <ul className="grid grid-cols-2 small:grid-cols-3 medium:grid-cols-4 gap-x-6 gap-y-8">
-        {products.map((product) => (
-          <li key={product.id}>
-            <Product region={region} product={product} />
-          </li>
+      {/* Product Grid */}
+      <div
+        className="
+        grid grid-cols-2 
+        gap-x-2 gap-y-7
+        md:grid-cols-3 md:gap-x-6 md:gap-y-12
+        lg:grid-cols-4
+      "
+      >
+        {products.map((related) => (
+          <Product
+            key={related.id}
+            region={region}
+            product={related}
+            isFeatured
+          />
         ))}
-      </ul>
-    </div>
+      </div>
+
+    </section>
   )
+
 }

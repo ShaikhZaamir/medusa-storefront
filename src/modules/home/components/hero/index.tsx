@@ -1,35 +1,43 @@
-import { Github } from "@medusajs/icons"
-import { Button, Heading } from "@medusajs/ui"
+import LocalizedClientLink from "@modules/common/components/localized-client-link"
 
 const Hero = () => {
   return (
-    <div className="h-[75vh] w-full border-b border-ui-border-base relative bg-ui-bg-subtle">
-      <div className="absolute inset-0 z-10 flex flex-col justify-center items-center text-center small:p-32 gap-6">
-        <span>
-          <Heading
-            level="h1"
-            className="text-3xl leading-10 text-ui-fg-base font-normal"
-          >
-            Ecommerce Starter Template
-          </Heading>
-          <Heading
-            level="h2"
-            className="text-3xl leading-10 text-ui-fg-subtle font-normal"
-          >
-            Powered by Medusa and Next.js
-          </Heading>
-        </span>
-        <a
-          href="https://github.com/medusajs/nextjs-starter-medusa"
-          target="_blank"
+    <section
+      className="
+        w-full 
+        py-24 
+        bg-[radial-gradient(circle_at_top,rgba(26,26,26,0.15),rgba(255,255,255,1))]
+        border-b border-[#F2F2F2]
+      "
+    >
+      <div className="content-container mx-auto text-center max-w-2xl">
+
+        <h1 className="text-[26px] md:text-[34px] font-semibold text-[#1A1A1A] leading-tight">
+          Feel Good. Look Better.
+        </h1>
+
+        {/* Accent bar */}
+        <div className="mx-auto mt-4 mb-8 h-[3px] w-16 bg-[#FF4D4D] rounded-full"></div>
+
+        <LocalizedClientLink
+          href="/store"
+          className="
+            inline-block
+            px-8 py-3 
+            text-white 
+            bg-[#1A1A1A]
+            rounded-md 
+            text-[15px] 
+            font-medium
+            hover:opacity-90
+            transition
+          "
         >
-          <Button variant="secondary">
-            View on GitHub
-            <Github />
-          </Button>
-        </a>
+          Shop Now
+        </LocalizedClientLink>
+
       </div>
-    </div>
+    </section>
   )
 }
 

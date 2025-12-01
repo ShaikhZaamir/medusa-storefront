@@ -11,9 +11,7 @@ export const metadata: Metadata = {
 }
 
 export default async function Checkout() {
-
   const cart = await retrieveCart()
-
 
   if (!cart) {
     return notFound()
