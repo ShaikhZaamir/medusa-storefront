@@ -1,5 +1,12 @@
 "use client"
 
+// Add Razorpay type to window
+declare global {
+  interface Window {
+    Razorpay: any
+  }
+}
+
 import { RadioGroup } from "@headlessui/react"
 import { isStripeLike, paymentInfoMap } from "@lib/constants"
 import { initiatePaymentSession } from "@lib/data/cart"
@@ -12,6 +19,20 @@ import PaymentContainer, {
 import Divider from "@modules/common/components/divider"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
+
+// Razorpay Loader
+const loadRazorpay = () => {
+  return new Promise((resolve) => {
+    if (typeof window !== "undefined" && window.Razorpay) {
+      return resolve(true)
+    }
+
+    const script = document.createElement("script")
+    script.src = "https://checkout.razorpay.com/v1/checkout.js"
+    script.onload = () => resolve(true)
+    document.body.appendChild(script)
+  })
+}
 
 const Payment = ({
   cart,
@@ -41,11 +62,10 @@ const Payment = ({
   const setPaymentMethod = async (method: string) => {
     setError(null)
     setSelectedPaymentMethod(method)
-    if (isStripeLike(method)) {
-      await initiatePaymentSession(cart, {
-        provider_id: method,
-      })
-    }
+    // Always initiate for BOTH Stripe + Manual COD
+    await initiatePaymentSession(cart, {
+      provider_id: method,
+    })
   }
 
   const paidByGiftcard =
@@ -71,8 +91,28 @@ const Payment = ({
   }
 
   const handleSubmit = async () => {
+
+    console.log("SELECTED PAYMENT METHOD:", selectedPaymentMethod)
+
     setIsLoading(true)
+    setError(null)
+
     try {
+      const isCOD = selectedPaymentMethod === "pp_system_default"
+
+      // ---------------------------------------
+      // CASE 1: COD (Partial COD flow) — CLEAN VERSION
+      // ---------------------------------------
+      if (isCOD) {
+        return router.push(
+          pathname + "?" + createQueryString("step", "review"),
+          { scroll: false }
+        )
+      }
+
+      // ---------------------------------------
+      // CASE 2: Prepaid (Stripe-like / Razorpay full)
+      // ---------------------------------------
       const shouldInputCard =
         isStripeLike(selectedPaymentMethod) && !activeSession
 
@@ -88,9 +128,7 @@ const Payment = ({
       if (!shouldInputCard) {
         return router.push(
           pathname + "?" + createQueryString("step", "review"),
-          {
-            scroll: false,
-          }
+          { scroll: false }
         )
       }
     } catch (err: any) {
@@ -99,6 +137,7 @@ const Payment = ({
       setIsLoading(false)
     }
   }
+
 
   useEffect(() => {
     setError(null)

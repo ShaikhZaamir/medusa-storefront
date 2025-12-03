@@ -1,5 +1,7 @@
 import React from "react"
 import { CreditCard } from "@medusajs/icons"
+import CODIcon from "@modules/common/icons/cod"
+import { HandCoins } from "lucide-react"
 
 import Ideal from "@modules/common/icons/ideal"
 import Bancontact from "@modules/common/icons/bancontact"
@@ -31,9 +33,10 @@ export const paymentInfoMap: Record<
     icon: <PayPal />,
   },
   pp_system_default: {
-    title: "Manual Payment",
-    icon: <CreditCard />,
+    title: "Cash on Delivery",
+    icon: <HandCoins size={20} />,
   },
+
   // Add more payment providers here
 }
 

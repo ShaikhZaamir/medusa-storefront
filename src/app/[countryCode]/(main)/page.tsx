@@ -9,9 +9,9 @@ import PremiumBrands from "@modules/home/components/premium-brands"
 import LastFewLeft from "@modules/home/components/last-few-left"
 
 export const metadata: Metadata = {
-  title: "Medusa Next.js Starter Template",
+  title: "Runwayy Clothing | Home",
   description:
-    "A performant frontend ecommerce starter template with Next.js 15 and Medusa.",
+    "Discover the latest trends in fashion at Runwayy Clothing. Explore our curated collections and find your perfect style today.",
 }
 
 export default async function Home(props: {
