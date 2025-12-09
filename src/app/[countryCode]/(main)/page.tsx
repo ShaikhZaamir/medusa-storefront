@@ -1,5 +1,6 @@
-import { Metadata } from "next"
+export const dynamic = "force-dynamic";
 
+import { Metadata } from "next"
 import FeaturedProducts from "@modules/home/components/featured-products"
 import Hero from "@modules/home/components/hero"
 import { listCollections } from "@lib/data/collections"
@@ -18,8 +19,7 @@ export default async function Home(props: {
   params: Promise<{ countryCode: string }>
 }) {
   const params = await props.params
-
-  const { countryCode } = params
+  const countryCode = params?.countryCode || "in"
 
   const region = await getRegion(countryCode)
 
@@ -48,8 +48,6 @@ export default async function Home(props: {
           <LastFewLeft collections={collections} region={region} />
         </ul>
       </div>
-
-
     </>
   )
 }
