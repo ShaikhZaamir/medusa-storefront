@@ -7,159 +7,148 @@ const DEFAULT_REGION = process.env.NEXT_PUBLIC_DEFAULT_REGION || "us"
 
 const regionMapCache = {
   regionMap: new Map<string, HttpTypes.StoreRegion>(),
-  regionMapUpdated: Date.now(),
+  regionMapUpdated: 0,
 }
 
+/**
+ * Fetch and cache region map
+ * MUST NEVER throw
+ */
 async function getRegionMap(cacheId: string) {
-  const { regionMap, regionMapUpdated } = regionMapCache
-
-  if (!BACKEND_URL) {
-    throw new Error(
-      "Middleware.ts: Error fetching regions. Did you set up regions in your Medusa Admin and define a MEDUSA_BACKEND_URL environment variable? Note that the variable is no longer named NEXT_PUBLIC_MEDUSA_BACKEND_URL."
-    )
+  if (!BACKEND_URL || !PUBLISHABLE_API_KEY) {
+    console.error("[middleware] Missing env vars")
+    return null
   }
 
-  if (
-    !regionMap.keys().next().value ||
-    regionMapUpdated < Date.now() - 3600 * 1000
-  ) {
-    // Fetch regions from Medusa. We can't use the JS client here because middleware is running on Edge and the client needs a Node environment.
-    const { regions } = await fetch(`${BACKEND_URL}/store/regions`, {
-      headers: {
-        "x-publishable-api-key": PUBLISHABLE_API_KEY!,
-      },
-      next: {
-        revalidate: 3600,
-        tags: [`regions-${cacheId}`],
-      },
-      cache: "force-cache",
-    }).then(async (response) => {
-      const json = await response.json()
+  const isCacheEmpty = regionMapCache.regionMap.size === 0
+  const isCacheStale =
+    regionMapCache.regionMapUpdated < Date.now() - 3600 * 1000
 
-      if (!response.ok) {
-        throw new Error(json.message)
+  if (isCacheEmpty || isCacheStale) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/store/regions`, {
+        headers: {
+          "x-publishable-api-key": PUBLISHABLE_API_KEY,
+        },
+        cache: "force-cache",
+      })
+
+      if (!res.ok) {
+        console.error("[middleware] Region fetch failed", res.status)
+        return null
       }
 
-      return json
-    })
+      const json = await res.json()
+      const regions = json?.regions
 
-    if (!regions?.length) {
-      throw new Error(
-        "No regions found. Please set up regions in your Medusa Admin."
-      )
-    }
+      if (!regions?.length) return null
 
-    // Create a map of country codes to regions.
-    regions.forEach((region: HttpTypes.StoreRegion) => {
-      region.countries?.forEach((c) => {
-        regionMapCache.regionMap.set(c.iso_2 ?? "", region)
+      regionMapCache.regionMap.clear()
+
+      regions.forEach((region: HttpTypes.StoreRegion) => {
+        region.countries?.forEach((c) => {
+          if (c.iso_2) {
+            regionMapCache.regionMap.set(
+              c.iso_2.toLowerCase(),
+              region
+            )
+          }
+        })
       })
-    })
 
-    regionMapCache.regionMapUpdated = Date.now()
+      regionMapCache.regionMapUpdated = Date.now()
+    } catch (e) {
+      console.error("[middleware] Region fetch crashed", e)
+      return null
+    }
   }
 
   return regionMapCache.regionMap
 }
 
 /**
- * Fetches regions from Medusa and sets the region cookie.
- * @param request
- * @param response
+ * Resolve country code safely
  */
-async function getCountryCode(
+function resolveCountryCode(
   request: NextRequest,
-  regionMap: Map<string, HttpTypes.StoreRegion | number>
+  regionMap: Map<string, HttpTypes.StoreRegion>
 ) {
-  try {
-    let countryCode
+  const pathCode = request.nextUrl.pathname.split("/")[1]?.toLowerCase()
+  if (pathCode && regionMap.has(pathCode)) return pathCode
 
-    const vercelCountryCode = request.headers
-      .get("x-vercel-ip-country")
-      ?.toLowerCase()
+  const vercelCode = request.headers
+    .get("x-vercel-ip-country")
+    ?.toLowerCase()
+  if (vercelCode && regionMap.has(vercelCode)) return vercelCode
 
-    const urlCountryCode = request.nextUrl.pathname.split("/")[1]?.toLowerCase()
+  if (regionMap.has(DEFAULT_REGION)) return DEFAULT_REGION
 
-    if (urlCountryCode && regionMap.has(urlCountryCode)) {
-      countryCode = urlCountryCode
-    } else if (vercelCountryCode && regionMap.has(vercelCountryCode)) {
-      countryCode = vercelCountryCode
-    } else if (regionMap.has(DEFAULT_REGION)) {
-      countryCode = DEFAULT_REGION
-    } else if (regionMap.keys().next().value) {
-      countryCode = regionMap.keys().next().value
-    }
-
-    return countryCode
-  } catch (error) {
-    if (process.env.NODE_ENV === "development") {
-      console.error(
-        "Middleware.ts: Error getting the country code. Did you set up regions in your Medusa Admin and define a MEDUSA_BACKEND_URL environment variable? Note that the variable is no longer named NEXT_PUBLIC_MEDUSA_BACKEND_URL."
-      )
-    }
-  }
+  return regionMap.keys().next().value
 }
 
 /**
- * Middleware to handle region selection and onboarding status.
+ * MAIN MIDDLEWARE
  */
 export async function middleware(request: NextRequest) {
-  let redirectUrl = request.nextUrl.href
+  const pathname = request.nextUrl.pathname
 
-  let response = NextResponse.redirect(redirectUrl, 307)
+  // 🔴 HARD SKIPS — MUST BE FIRST
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname === "/favicon.ico" ||
+    pathname === "/server-unavailable" ||
+    pathname.includes(".")
+  ) {
+    return NextResponse.next()
+  }
 
-  let cacheIdCookie = request.cookies.get("_medusa_cache_id")
-
-  let cacheId = cacheIdCookie?.value || crypto.randomUUID()
+  const cacheId =
+    request.cookies.get("_medusa_cache_id")?.value ??
+    crypto.randomUUID()
 
   const regionMap = await getRegionMap(cacheId)
 
-  const countryCode = regionMap && (await getCountryCode(request, regionMap))
+  // 🔴 Backend down → fallback page
+  if (!regionMap) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/server-unavailable"
+    url.search = ""
+    return NextResponse.redirect(url, 307)
+  }
 
-  const urlHasCountryCode =
-    countryCode && request.nextUrl.pathname.split("/")[1].includes(countryCode)
+  const countryCode = resolveCountryCode(request, regionMap)
 
-  // if one of the country codes is in the url and the cache id is set, return next
-  if (urlHasCountryCode && cacheIdCookie) {
+  if (!countryCode) {
     return NextResponse.next()
   }
 
-  // if one of the country codes is in the url and the cache id is not set, set the cache id and redirect
-  if (urlHasCountryCode && !cacheIdCookie) {
-    response.cookies.set("_medusa_cache_id", cacheId, {
-      maxAge: 60 * 60 * 24,
-    })
+  const hasCountry =
+    pathname.split("/")[1]?.toLowerCase() === countryCode
 
-    return response
+  // Already correct → continue
+  if (hasCountry) {
+    const res = NextResponse.next()
+    if (!request.cookies.has("_medusa_cache_id")) {
+      res.cookies.set("_medusa_cache_id", cacheId, {
+        maxAge: 60 * 60 * 24,
+      })
+    }
+    return res
   }
 
-  // check if the url is a static asset
-  if (request.nextUrl.pathname.includes(".")) {
-    return NextResponse.next()
-  }
+  // Redirect ONLY when needed
+  const url = request.nextUrl.clone()
+  url.pathname =
+    pathname === "/"
+      ? `/${countryCode}`
+      : `/${countryCode}${pathname}`
 
-  const redirectPath =
-    request.nextUrl.pathname === "/" ? "" : request.nextUrl.pathname
-
-  const queryString = request.nextUrl.search ? request.nextUrl.search : ""
-
-  // If no country code is set, we redirect to the relevant region.
-  if (!urlHasCountryCode && countryCode) {
-    redirectUrl = `${request.nextUrl.origin}/${countryCode}${redirectPath}${queryString}`
-    response = NextResponse.redirect(`${redirectUrl}`, 307)
-  } else if (!urlHasCountryCode && !countryCode) {
-    // Handle case where no valid country code exists (empty regions)
-    return new NextResponse(
-      "No valid regions configured. Please set up regions with countries in your Medusa Admin.",
-      { status: 500 }
-    )
-  }
-
-  return response
+  return NextResponse.redirect(url, 307)
 }
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|images|assets|png|svg|jpg|jpeg|gif|webp).*)",
+    "/((?!_next|api|favicon.ico).*)",
   ],
 }
